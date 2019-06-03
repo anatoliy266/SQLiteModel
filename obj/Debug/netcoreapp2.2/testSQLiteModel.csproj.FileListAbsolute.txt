@@ -1,0 +1,11 @@
+C:\Users\a.stanevich\source\repos\App1\testSQLiteModel\bin\Debug\netcoreapp2.2\testSQLiteModel.deps.json
+C:\Users\a.stanevich\source\repos\App1\testSQLiteModel\bin\Debug\netcoreapp2.2\testSQLiteModel.runtimeconfig.json
+C:\Users\a.stanevich\source\repos\App1\testSQLiteModel\bin\Debug\netcoreapp2.2\testSQLiteModel.runtimeconfig.dev.json
+C:\Users\a.stanevich\source\repos\App1\testSQLiteModel\bin\Debug\netcoreapp2.2\testSQLiteModel.dll
+C:\Users\a.stanevich\source\repos\App1\testSQLiteModel\obj\Debug\netcoreapp2.2\testSQLiteModel.csprojAssemblyReference.cache
+C:\Users\a.stanevich\source\repos\App1\testSQLiteModel\obj\Debug\netcoreapp2.2\testSQLiteModel.csproj.CoreCompileInputs.cache
+C:\Users\a.stanevich\source\repos\App1\testSQLiteModel\obj\Debug\netcoreapp2.2\testSQLiteModel.AssemblyInfoInputs.cache
+C:\Users\a.stanevich\source\repos\App1\testSQLiteModel\obj\Debug\netcoreapp2.2\testSQLiteModel.AssemblyInfo.cs
+C:\Users\a.stanevich\source\repos\App1\testSQLiteModel\bin\Debug\netcoreapp2.2\testSQLiteModel.pdb
+C:\Users\a.stanevich\source\repos\App1\testSQLiteModel\obj\Debug\netcoreapp2.2\testSQLiteModel.dll
+C:\Users\a.stanevich\source\repos\App1\testSQLiteModel\obj\Debug\netcoreapp2.2\testSQLiteModel.pdb
