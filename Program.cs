@@ -77,6 +77,7 @@ namespace program
         private object Content;
         private object FilterContent;
         private object TableType;
+        private Dictionary<int, string> HeaderData;
 
         private SQLiteAsyncConnection db;
         private bool bIsTableSet;
@@ -87,16 +88,21 @@ namespace program
         private string FilterString;
 
 
+        private delegate void ChangeHandler(int row, int col, dynamic value);
+        private event ChangeHandler Change;
+
+
         public SQLiteModel(string dbName)
         {
             db = new SQLiteAsyncConnection(Path.Combine(Directory.GetCurrentDirectory(), dbName));
-            Task.Run(() => { bIsOperational = false; PrepareDB(0); });
+            Task.Run(() => { bIsOperational = false; PrepareDB(); });
+            this.Change += new ChangeHandler(OnChange);
             Content = new List<object>();
             bIsTableSet = false;
             bIsOperational = true;
         }
 
-        private async void PrepareDB(int num)
+        private async void PrepareDB()
         {
             try
             {
@@ -187,14 +193,21 @@ namespace program
                         var row = dataType.InvokeMember("ToArray", BindingFlags.InvokeMethod, null, data, null);
                         var rowType = dataType.InvokeMember("ToArray", BindingFlags.InvokeMethod, null, data, null).GetType().InvokeMember("GetValue", BindingFlags.InvokeMethod, null, row, new object[] { 0 }).GetType();
 
+                        var rowPropertiesInfo = rowType.GetProperties();
+                        Dictionary<int, string> headerData = new Dictionary<int, string>();
+                        for (var i = 0; i < rowPropertiesInfo.Count(); i++)
+                        {
+                            //headerData.Add(rowPropertiesInfo[i].Name);
+                            headerData[i] = rowPropertiesInfo[i].Name;
+                        }
 
                         //write global models properties, bIsTableSet & bIsOperational -> blocking parameters, check if no table set or if some operations running in current model...
                         TableType = rowType;
                         Content = data;
                         TableName = tableName;
+                        HeaderData = headerData;
                         bIsTableSet = true;
                         bIsOperational = true;
-
                         return true;
                     }
                 }
@@ -231,7 +244,6 @@ namespace program
         /// <param name="filterString">filter string in SQL syntax, use  AND|OR to make difficult filter</param>
         public void Filter(string filterString)
         {
-            
             string[] filters = filterString.Split(new string[]{" AND " , " OR "}, StringSplitOptions.RemoveEmptyEntries);
             foreach (var filter in filters)
             {
@@ -313,7 +325,7 @@ namespace program
         /// <typeparam name="T">Class type implemented database table</typeparam>
         /// <param name="id">position in model data</param>
         /// <returns>(T) class == row in db table</returns>
-        public T GetRow<T>(int id)
+        public T Record<T>(int id)
         {
             if (bIsTableSet && bIsOperational)
             {
@@ -336,7 +348,7 @@ namespace program
         }
 
         /// <summary>
-        /// Update data in model
+        /// Update data in model, 
         /// </summary>
         public async void Update()
         {
@@ -351,10 +363,76 @@ namespace program
                     bIsOperational = false;
                     await this.SetTable(TableName);
                 }
-                
             }
         }
+
+        private async void OnChange(int row, int col, dynamic value)
+        {
+            var data = Content.GetType().InvokeMember("ToArray", BindingFlags.InvokeMethod, null, Content, null);
+            var currentRow = data.GetType().InvokeMember("GetValue", BindingFlags.InvokeMethod, null, data, new object[] { row });
+
+            var columns = TableType.GetType().GetProperties();
+            var primary = columns[0].Name;
+            var currentColumn = GetColumnName(col);
+            foreach (var column in columns)
+            {
+                if (column.Name == currentColumn)
+                {
+                    column.SetValue(column, value);
+                    await db.ExecuteAsync("update table ? set ? = ? where ? = ?", new object[] { TableName, currentColumn, value, primary, row });
+                    currentRow.GetType().InvokeMember(currentColumn, BindingFlags.SetProperty, null, column, null);
+                    data.GetType().InvokeMember("SetValue", BindingFlags.InvokeMethod, null, data, new object[] { currentRow, row });
+                    Content = data.GetType().InvokeMember("ToList", BindingFlags.InvokeMethod, null, data, null);
+                }
+            }
+            GetColumnName(col);
+            List<string> list = new List<string>();
+            list.ToArray().GetValue(row);
+            list.ToArray().SetValue(list.ToArray(), row);
+        }
+
+
+        /// <summary>
+        /// Get value of table class property by property name
+        /// </summary>
+        /// <param name="row">implement row of table in db</param>
+        /// <param name="ColumnName">name of column in table </param>
+        /// <returns></returns>
+        public dynamic Data(int row, string ColumnName)
+        {
+            var data = Content.GetType().InvokeMember("ToArray", BindingFlags.InvokeMethod, null, Content, null);
+            var currentRow = data.GetType().InvokeMember("GetValue", BindingFlags.InvokeMethod, null, data, new object[] { row });
+            var rowProperties = currentRow.GetType().GetProperties();
+            foreach (var property in rowProperties)
+            {
+                if (property.Name == ColumnName)
+                {
+                    dynamic cellData = property.GetValue(currentRow);
+                    return Convert.ChangeType(cellData, property.PropertyType);
+                }
+            }
+            return null;
+        }
+        
+        private string GetColumnName(int col)
+        {
+            return HeaderData[col];
+        }
+
+        private int GetColumnNum(string columnName)
+        {
+            for (var i = 0; i < HeaderData.Count; i++)
+            {
+                if (HeaderData[i] == columnName)
+                {
+                    return i;
+                }
+            }
+            throw new NullReferenceException("invalid column name");
+        }
     }
+
+
 
 
     class Program
@@ -368,6 +446,7 @@ namespace program
                 Console.WriteLine(model.RowCount());
                 model.Filter("WalletName = MyWallet");
                 Console.WriteLine(model.RowCount());
+                Console.WriteLine(model.Data(0, "WalletName"));
                 
             } catch (Exception e)
             {
